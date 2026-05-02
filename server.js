@@ -1,36 +1,40 @@
 import express from "express";
 import cors from "cors";
+import { createClient } from "@supabase/supabase-js";
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Health check route (important for uptime robot)
+// 🔒 Supabase connection
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+// Test route
 app.get("/", (req, res) => {
-  res.status(200).send("✅ Cezonal Backend Running");
+  res.send("✅ Backend + Supabase Connected");
 });
 
-// Test API
-app.post("/test", (req, res) => {
-  const data = req.body;
+// Insert into "trail" table
+app.post("/test", async (req, res) => {
+  const { message } = req.body;
 
-  res.json({
-    success: true,
-    message: "Data received successfully",
-    data: data
-  });
+  const { error } = await supabase
+    .from("trail")
+    .insert([{ message }]);
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ success: true });
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: "Route not found" });
-});
-
-// Start server
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log("🚀 Server running on port", PORT);
 });
